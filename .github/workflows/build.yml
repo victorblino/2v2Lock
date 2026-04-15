@@ -8,6 +8,9 @@ on:
       - master
   pull_request:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: windows-latest
@@ -58,3 +61,27 @@ jobs:
         with:
           name: 2v2Lock-zip
           path: 2v2Lock.zip
+
+      - name: Publish prerelease
+        if: github.event_name != 'pull_request' && github.ref_name == 'main'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "latest"
+          $title = "2v2Lock Latest Build"
+          $notes = "Automated build from the latest main branch commit."
+
+          gh release view $tag --repo "${{ github.repository }}" *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag ".\2v2Lock.zip" `
+              --repo "${{ github.repository }}" `
+              --title $title `
+              --notes $notes `
+              --prerelease
+          }
+          else {
+            gh release upload $tag ".\2v2Lock.zip" `
+              --repo "${{ github.repository }}" `
+              --clobber
+          }
