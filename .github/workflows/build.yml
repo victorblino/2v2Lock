@@ -1,0 +1,60 @@
+name: Build Plugin
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout plugin
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Checkout Deadworks source
+        shell: pwsh
+        run: git clone --depth 1 https://github.com/Deadworks-net/deadworks.git deadworks-src
+
+      - name: Build DeadworksManaged.Api
+        shell: pwsh
+        run: dotnet build .\deadworks-src\managed\DeadworksManaged.Api\DeadworksManaged.Api.csproj -c Release
+
+      - name: Build 2v2Lock
+        shell: pwsh
+        run: >
+          dotnet build .\2v2Lock.csproj -c Release
+          -p:DeadworksApiHintPath="${{ github.workspace }}\deadworks-src\managed\DeadworksManaged.Api\bin\Release\net10.0\DeadworksManaged.Api.dll"
+
+      - name: Package plugin
+        shell: pwsh
+        run: |
+          $packageRoot = Join-Path $env:GITHUB_WORKSPACE "plugins\2v2Lock"
+          New-Item -ItemType Directory -Force -Path $packageRoot | Out-Null
+
+          Copy-Item ".\bin\Release\net10.0\2v2Lock.dll" $packageRoot
+          Copy-Item ".\bin\Release\net10.0\2v2Lock.pdb" $packageRoot
+          Copy-Item ".\bin\Release\net10.0\config.json" $packageRoot
+
+          Compress-Archive -Path $packageRoot -DestinationPath ".\2v2Lock.zip" -Force
+
+      - name: Upload plugin folder
+        uses: actions/upload-artifact@v4
+        with:
+          name: 2v2Lock-plugin
+          path: plugins/2v2Lock
+
+      - name: Upload zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: 2v2Lock-zip
+          path: 2v2Lock.zip
