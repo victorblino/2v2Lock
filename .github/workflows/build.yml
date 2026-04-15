@@ -23,17 +23,17 @@ jobs:
 
       - name: Checkout Deadworks source
         shell: pwsh
-        run: git clone --depth 1 https://github.com/Deadworks-net/deadworks.git deadworks-src
+        run: git clone --depth 1 https://github.com/Deadworks-net/deadworks.git "$env:RUNNER_TEMP\deadworks-src"
 
       - name: Build DeadworksManaged.Api
         shell: pwsh
-        run: dotnet build .\deadworks-src\managed\DeadworksManaged.Api\DeadworksManaged.Api.csproj -c Release
+        run: dotnet build "$env:RUNNER_TEMP\deadworks-src\managed\DeadworksManaged.Api\DeadworksManaged.Api.csproj" -c Release
 
       - name: Build 2v2Lock
         shell: pwsh
         run: >
           dotnet build .\2v2Lock.csproj -c Release
-          -p:DeadworksApiHintPath="${{ github.workspace }}\deadworks-src\managed\DeadworksManaged.Api\bin\Release\net10.0\DeadworksManaged.Api.dll"
+          -p:DeadworksApiHintPath="$env:RUNNER_TEMP\deadworks-src\managed\DeadworksManaged.Api\bin\Release\net10.0\DeadworksManaged.Api.dll"
 
       - name: Package plugin
         shell: pwsh
